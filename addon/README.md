@@ -10,13 +10,12 @@ Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon and Intel).
 
 ## Install
 
-1. Copy `addons/klattsch` into your project's `addons/` folder.
+1. Unzip the release into your project folder, so it contains
+   `addons/klattsch/` (or copy that folder into your project's `addons/`).
 2. Restart the editor (GDExtensions load at startup).
-3. **For exports:** open Project > Export, select each preset, and on the
-   Resources tab add `*.dict` to "Filters to export non-resource
-   files/folders". Without it the CMU dictionary
-   (`res://addons/klattsch/cmudict.dict`) is left out of the exported game
-   and English falls back to letter-to-sound rules.
+
+That's all: exported games include the CMU dictionary
+(`res://addons/klattsch/cmudict.dict`) automatically.
 
 macOS: if the editor refuses to load the library from a downloaded zip,
 remove the quarantine flag first:

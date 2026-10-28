@@ -3,7 +3,8 @@
 //   - the script editor's "klattsch phonemes" syntax highlighter;
 //   - an audition panel at the top of the Inspector for a KlattschPlayer or
 //     KlattschStream: type English, Japanese or phonemes, press Play, and
-//     hear the line in that node's voice without running the game.
+//     hear the line in that node's voice without running the game;
+//   - an export plugin that puts the CMU dictionary in every export.
 //
 // The panel pre-renders the line (as Klattsch.render does) and plays it on
 // an AudioStreamPlayer the plugin owns, so it keeps playing while the
@@ -18,9 +19,9 @@ use std::cell::RefCell;
 use godot::classes::text_edit::LineWrappingMode;
 use godot::classes::text_server::AutowrapMode;
 use godot::classes::{
-    AudioServer, AudioStreamPlayer, Button, CodeEdit, EditorInspectorPlugin, EditorInterface, EditorPlugin,
-    HBoxContainer, IEditorInspectorPlugin, IEditorPlugin, IVBoxContainer, InputEvent, InputEventKey, Label, Node,
-    OptionButton, VBoxContainer,
+    AudioServer, AudioStreamPlayer, Button, CodeEdit, EditorExportPlugin, EditorInspectorPlugin, EditorInterface,
+    EditorPlugin, FileAccess, HBoxContainer, IEditorExportPlugin, IEditorInspectorPlugin, IEditorPlugin,
+    IVBoxContainer, InputEvent, InputEventKey, Label, Node, OptionButton, Resource, VBoxContainer,
 };
 use godot::global::Key;
 use godot::prelude::*;
@@ -473,12 +474,69 @@ impl IEditorInspectorPlugin for KlattschAuditionInspector {
     }
 }
 
-// Registers the highlighter and the audition panel.
+// Godot leaves files it does not import (like cmudict.dict) out of exports
+// unless the preset's non-resource filter names them. This adds the
+// dictionary to every export, so English works in exported games with no
+// setup; presets whose filter already includes it are left alone.
+#[derive(GodotClass)]
+#[class(tool, init, internal, base = EditorExportPlugin)]
+pub struct KlattschExportPlugin {
+    base: Base<EditorExportPlugin>,
+}
+
+// Whether a comma-separated export filter ("*.dict, voices/*") matches a
+// res:// path, by its full path, project-relative path or file name.
+fn filter_includes(filter: &str, path: &str) -> bool {
+    let relative = path.trim_start_matches("res://");
+    let file = relative.rsplit('/').next().unwrap_or(relative);
+    filter.split(',').map(str::trim).filter(|p| !p.is_empty()).any(|pattern| {
+        let pattern = GString::from(pattern);
+        [path, relative, file].iter().any(|s| GString::from(*s).matchn_glob(&pattern))
+    })
+}
+
+#[godot_api]
+impl IEditorExportPlugin for KlattschExportPlugin {
+    fn get_name(&self) -> GString {
+        "klattsch".into()
+    }
+
+    fn export_begin(&mut self, _features: PackedStringArray, _is_debug: bool, _path: GString, _flags: u32) {
+        let path = klattsch::DEFAULT_DICTIONARY;
+        if !FileAccess::file_exists(path) {
+            return;
+        }
+        let filter = self.base().get_export_preset().map(|p| p.get_include_filter().to_string()).unwrap_or_default();
+        if filter_includes(&filter, path) {
+            return;
+        }
+        let bytes = FileAccess::get_file_as_bytes(path);
+        if !bytes.is_empty() {
+            self.base_mut().add_file(path, &bytes, false);
+        }
+    }
+
+    fn customize_resource(&mut self, _resource: Gd<Resource>, _path: GString) -> Option<Gd<Resource>> {
+        None
+    }
+
+    fn customize_scene(&mut self, _scene: Gd<Node>, _path: GString) -> Option<Gd<Node>> {
+        None
+    }
+
+    // Resources and scenes are never customized, so the hash never changes.
+    fn get_customization_configuration_hash(&self) -> u64 {
+        0
+    }
+}
+
+// Registers the highlighter, the audition panel and the export plugin.
 #[derive(GodotClass)]
 #[class(tool, init, base = EditorPlugin)]
 pub struct KlattschEditorPlugin {
     highlighter: Option<Gd<KlattschEditorSyntaxHighlighter>>,
     inspector: Option<Gd<KlattschAuditionInspector>>,
+    export: Option<Gd<KlattschExportPlugin>>,
     player: Option<Gd<AudioStreamPlayer>>,
     base: Base<EditorPlugin>,
 }
@@ -495,14 +553,20 @@ impl IEditorPlugin for KlattschEditorPlugin {
         if let Some(mut editor) = EditorInterface::singleton().get_script_editor() {
             editor.register_syntax_highlighter(&highlighter);
         }
+        let export = KlattschExportPlugin::new_gd();
+        self.base_mut().add_export_plugin(&export);
         self.player = Some(player);
         self.inspector = Some(inspector);
         self.highlighter = Some(highlighter);
+        self.export = Some(export);
     }
 
     fn exit_tree(&mut self) {
         if let Some(inspector) = self.inspector.take() {
             self.base_mut().remove_inspector_plugin(&inspector);
+        }
+        if let Some(export) = self.export.take() {
+            self.base_mut().remove_export_plugin(&export);
         }
         if let Some(highlighter) = self.highlighter.take()
             && let Some(mut editor) = EditorInterface::singleton().get_script_editor()

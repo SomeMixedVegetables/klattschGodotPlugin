@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/klattsch-core", "crates/klattsch-cli", "crates/klattsch-godot"]
 
 [workspace.package]
-version = "0.8.0"
+version = "0.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/SomeMixedVegetables/klattschGodotPlugin"

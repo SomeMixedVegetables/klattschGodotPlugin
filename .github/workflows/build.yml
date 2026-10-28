@@ -1,13 +1,16 @@
 # Tests the core against the original JS engine on every platform, builds the
 # GDExtension for Windows, Linux and macOS (universal), and packages
-# addons/klattsch as the `klattsch-godot-addon` artifact. (The Godot test
-# scenes run locally with tools/godot_tests.py; see the README.)
+# addons/klattsch as the `klattsch-godot-addon` artifact. Pushing a tag
+# vX.Y.Z (matching the version in Cargo.toml) also publishes a GitHub
+# release with klattsch-godot-vX.Y.Z.zip and that version's CHANGELOG.md
+# section as its notes.
 
 name: build
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -148,3 +151,37 @@ jobs:
           name: klattsch-godot-addon
           path: dist/klattsch-godot
           if-no-files-found: error
+
+  release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: klattsch-godot-addon
+          path: dist/klattsch-godot
+      - name: Check the tag against Cargo.toml and CHANGELOG.md
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version $version in Cargo.toml"
+            exit 1
+          fi
+          # The notes: this version's section, without its heading.
+          awk -v v="## $version" '$0 == v {on = 1; next} /^## / {on = 0} on' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+      - name: Zip the addon
+        run: (cd dist/klattsch-godot && zip -qr "$GITHUB_WORKSPACE/klattsch-godot-$GITHUB_REF_NAME.zip" addons)
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "klattsch-godot-$GITHUB_REF_NAME.zip" --title "klattsch for Godot $GITHUB_REF_NAME" --notes-file notes.md

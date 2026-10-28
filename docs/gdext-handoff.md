@@ -381,7 +381,7 @@ record, with these amendments agreed after review:
   player's own stream, a target's stream (intonation off) and a bare
   KlattschStream. The panel plays a stock 16-bit AudioStreamWAV copy of
   the render, not the KlattschSample: see the CI finding below.
-- **Godot tests in CI:** `tools/godot_tests.py` copies `godot/` with the
+- **Godot test runner:** `tools/godot_tests.py` copies `godot/` with the
   packaged addon in place of the debug build, imports it (`--import`) and
   runs every test scene and the editor checks headless; each scene now ends
   with a verdict (`ok`, `failed`, from `godot/verdict.gd`), and the WAVs
@@ -400,15 +400,10 @@ record, with these amendments agreed after review:
   editor (`@tool`) script that leaves a KlattschSample or KlattschStream
   playing when the editor quits can crash it; games that quit while
   speaking have exited cleanly in every run.
-- **Godot in CI, dropped:** a job that downloaded Godot 4.7.2 and ran
-  `tools/godot_tests.py` on Ubuntu, macOS and Windows failed on all three
-  at its first step: Godot crashed while quitting after importing the
-  project. Reproduced locally by starting Godot with empty editor settings
-  (an `_sc_` file next to the executable): every first-ever start with the
-  addon installed crashes on exit, never without it, and later starts are
-  fine. The crash comes right after the extension's `MainLoop` deinit. A
-  first start also generates the class documentation, which creates
-  throwaway instances of every class, and those were not seen being freed;
-  that is the leading suspect, not confirmed. Users could meet it the first
-  time they close the editor on a fresh Godot install. Not fixed; the CI
-  job was removed.
+- **Release 0.1.0 prep:** a `KlattschExportPlugin` (registered by the
+  editor plugin) adds `res://addons/klattsch/cmudict.dict` to every export
+  in `_export_begin` unless the preset's include filter already matches it,
+  so the `*.dict` filter step is gone. Checked by exporting the test
+  project with and without the filter: one dictionary entry in the .pck
+  either way, and the exported step 5 test passes (English matches the
+  CLI). Version tags (`vX.Y.Z`) now publish a GitHub release from CI.
