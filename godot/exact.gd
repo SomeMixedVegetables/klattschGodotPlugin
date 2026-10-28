@@ -10,6 +10,7 @@
 # for bit.
 extends Node
 
+const Verdict := preload("res://verdict.gd")
 const GAME := 0
 const EXACT := 1
 
@@ -56,6 +57,19 @@ func _ready() -> void:
 	# For comparison: game mode at the mix rate, pitch 1 (resampled by Godot).
 	r.cases.append(await compare("hello, game mode", flat, GAME, hello))
 
+	# Plain players are bit-identical; a centered 2D player halves every
+	# sample exactly (its pan law); 3D attenuates by distance, so only its
+	# gain is checked.
+	var v := Verdict.new()
+	for c in r.cases:
+		v.expect(c.name + ": samples", c.samples > 0)
+		if "2D" in c.name:
+			v.expect(c.name + ": gain 0.5", c.fixed_gain == 0.5 and c.fixed_gain_mismatches == 0)
+		elif "3D" in c.name:
+			v.near(c.name + ": gain", c.fixed_gain, 0.998815, 0.0005)
+		else:
+			v.expect(c.name + ": identical", c.identical and c.right_differs_from_left == 0)
+	v.finish(r)
 	print("STEP3_RESULT ", JSON.stringify(r))
 	get_tree().quit()
 

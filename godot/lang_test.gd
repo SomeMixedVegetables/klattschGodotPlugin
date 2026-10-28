@@ -5,6 +5,8 @@
 # line and quits.
 extends Node
 
+const Verdict := preload("res://verdict.gd")
+
 # klattsch-cli --english output for the same text (must match exactly).
 const CLI := {
 	"I have $3.50": "b AY HH AE V TH R IY' D AA' L ER Z AH N D F IH' F T IY S EH'-25 N T S",
@@ -106,6 +108,25 @@ func _ready() -> void:
 	r["all_errors"] = errors()
 	kp.get_audio_player().stop()
 	await get_tree().process_frame
+
+	var v := Verdict.new()
+	v.expect("dictionary loads in the background", not r.ready_before and r.ready_after and r.dictionary_loaded_signal)
+	v.expect("early say", r.early_id > 0 and r.early_errors.is_empty())
+	for text in r.english_matches_cli:
+		v.expect("English matches the CLI: " + text, r.english_matches_cli[text])
+	v.expect("english_flat", r.english_flat == "IH Z IH T .")
+	v.expect("english_words", r.words.size() == 3 and r.words[0].source == "expansion: doctor" and r.words[2].source == "number")
+	v.expect("add_word", r.add_word and not r.add_word_bad and r.zyx == "Z IH' K S")
+	v.expect("load_word_list", r.load_word_list and r.klattsch_word == "K L AA' CH")
+	v.expect("remove_word", r.remove_word and r.zyx_after_remove != r.zyx)
+	v.expect("load_bank", r.load_bank == "user-voice" and "user-voice" in r.banks)
+	v.expect("bank phonemes", r.qx_warnings_default_bank > 0 and r.qx_warnings_user_bank == 0)
+	v.expect("user bank is heard", r.user_bank_peak > 0.01)
+	v.near("base_f0 reaches say()", r.f0_at_base_200, 200.0, 5.0)
+	v.expect("japanese", r.japanese == "K O N N I CH I HH A" and r.japanese_bad == "")
+	v.expect("say_japanese", r.say_japanese_id > 0 and r.say_japanese_bad == -1)
+	v.expect("say", r.say_money_id > 0)
+	v.finish(r)
 	print("STEP5_RESULT ", JSON.stringify(r))
 	get_tree().quit()
 

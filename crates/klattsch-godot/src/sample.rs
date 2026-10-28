@@ -241,7 +241,7 @@ impl KlattschSample {
     // A stock AudioStreamWAV with the same sound, quantized to 16 bits (no
     // normalization), for code that needs one.
     #[func]
-    fn to_audio_stream_wav(&self) -> Gd<AudioStreamWav> {
+    pub fn to_audio_stream_wav(&self) -> Gd<AudioStreamWav> {
         let wav = encode_wav(&self.samples, self.rate as u32, &WavOptions { peak_normalize: None, metadata: None });
         let mut stream = AudioStreamWav::new_gd();
         stream.set_format(Format::FORMAT_16_BITS);

@@ -379,8 +379,25 @@ record, with these amendments agreed after review:
   `addons/klattsch_editor_test`): each mode plays exactly
   `Klattsch.render(Klattsch.compile_with(...))` of the same settings, for a
   player's own stream, a target's stream (intonation off) and a bare
-  KlattschStream. Found on the way: closing the editor while an audition
-  still played crashed it (the audio server freed the KlattschSample
-  playback after the library unloaded); the plugin now stops and drops it
-  in `exit_tree`. A game that quits mid-sample is unaffected (Godot only
-  reports the leaked playback).
+  KlattschStream. The panel plays a stock 16-bit AudioStreamWAV copy of
+  the render, not the KlattschSample: see the CI finding below.
+- **Godot tests in CI:** `tools/godot_tests.py` copies `godot/` with the
+  packaged addon in place of the debug build, imports it (`--import`) and
+  runs every test scene and the editor checks headless; each scene now ends
+  with a verdict (`ok`, `failed`, from `godot/verdict.gd`), and the WAVs
+  `save_wav` writes are compared with the CLI's byte for byte. CI runs it
+  on Ubuntu, macOS (Apple Silicon) and Windows. Headless Godot uses the
+  dummy audio driver, which still mixes (at 44.1 kHz, in bursts of up to
+  ~100 ms), so exactness is checked as with real output and timing to
+  250 ms instead of 30 ms; the step 2 silence and reset checks now wait
+  longer than a burst. Running the editor checks repeatedly after fresh
+  imports exposed an intermittent crash (about 1 run in 7) on **editor
+  exit**: tracing showed every klattsch object freed except one
+  KlattschSample playback that the audio server still held. The audio
+  server releases it during its own shutdown, after this library has shut
+  down, and that crashes. No mix call happens after shutdown, and holding
+  an extra reference to the playback does not help. With the audition
+  playing an AudioStreamWAV, 20 of 20 fresh runs exit cleanly. So an
+  editor (`@tool`) script that leaves a KlattschSample or KlattschStream
+  playing when the editor quits can crash it; games that quit while
+  speaking have exited cleanly in every run.

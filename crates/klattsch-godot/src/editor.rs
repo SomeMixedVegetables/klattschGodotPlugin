@@ -5,9 +5,12 @@
 //     KlattschStream: type English, Japanese or phonemes, press Play, and
 //     hear the line in that node's voice without running the game.
 //
-// The panel pre-renders the line (Klattsch.render) and plays it on an
-// AudioStreamPlayer the plugin owns, so it keeps playing while the
-// Inspector rebuilds. KlattschStream and KlattschPlayer are runtime classes
+// The panel pre-renders the line (as Klattsch.render does) and plays it on
+// an AudioStreamPlayer the plugin owns, so it keeps playing while the
+// Inspector rebuilds. It plays a stock 16-bit AudioStreamWAV copy, not the
+// KlattschSample: a KlattschSample playback the audio server still holds
+// when the editor quits is released after this library has shut down, and
+// that crashes the editor. KlattschStream and KlattschPlayer are runtime classes
 // (placeholders in the editor), so their properties are read with get().
 
 use std::cell::RefCell;
@@ -407,7 +410,7 @@ impl KlattschAuditionPanel {
             Err(e) => return self.set_status(&e.to_string()),
         };
         if let Some(player) = self.player.as_mut() {
-            player.set_stream(&KlattschSample::create(samples, rate));
+            player.set_stream(&KlattschSample::create(samples, rate).bind().to_audio_stream_wav());
             player.play();
         }
         let bank = match &options.bank {
@@ -506,12 +509,7 @@ impl IEditorPlugin for KlattschEditorPlugin {
         {
             editor.unregister_syntax_highlighter(&highlighter);
         }
-        // Let go of the KlattschSample now: if the audio server still holds
-        // its playback when the editor shuts down, it frees it after this
-        // library is gone and the editor crashes.
         if let Some(mut player) = self.player.take() {
-            player.stop();
-            player.set_stream(Option::<&Gd<godot::classes::AudioStream>>::None);
             player.queue_free();
         }
     }

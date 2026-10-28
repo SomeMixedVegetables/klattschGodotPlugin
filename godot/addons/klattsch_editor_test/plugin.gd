@@ -51,20 +51,22 @@ func set_mode(panel: Node, index: int) -> void:
 	mode.item_selected.emit(index)
 
 
-# Press Play and wait for the status line; returns the sample now playing.
-func play(panel: Node) -> KlattschSample:
+# Press Play and wait for the status line; returns the stream now playing
+# (a 16-bit AudioStreamWAV copy of the rendered line).
+func play(panel: Node) -> AudioStreamWAV:
 	child_of(panel, "Button", "Play").pressed.emit()
 	for i in 600:
 		if " s, " in status(panel) or "Not " in status(panel):
 			break
 		await get_tree().process_frame
 	var players := find_all(get_tree().root,
-		func(n): return n is AudioStreamPlayer and n.playing and n.stream is KlattschSample)
+		func(n): return n is AudioStreamPlayer and n.playing and n.stream is AudioStreamWAV)
 	return players[0].stream if players.size() == 1 else null
 
 
-func same(a: KlattschSample, b: KlattschSample) -> bool:
-	return a != null and b != null and a.get_samples() == b.get_samples()
+# The panel's sound is exactly this render, quantized as to_audio_stream_wav does.
+func same(a: AudioStreamWAV, b: KlattschSample) -> bool:
+	return a != null and b != null and a.data == b.to_audio_stream_wav().data
 
 
 func _run() -> void:
@@ -142,7 +144,7 @@ func _run() -> void:
 	child_of(panel, "Button", "Stop").pressed.emit()
 	await frames(2)
 	check("stop", find_all(get_tree().root,
-		func(n): return n is AudioStreamPlayer and n.playing and n.stream is KlattschSample).is_empty())
+		func(n): return n is AudioStreamPlayer and n.playing and n.stream is AudioStreamWAV).is_empty())
 
 	# Text is kept per mode across panels.
 	EditorInterface.edit_node(root.get_node("Bare"))

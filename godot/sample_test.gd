@@ -4,6 +4,7 @@
 # JSON line and quits.
 extends Node
 
+const Verdict := preload("res://verdict.gd")
 const HELLO := "HH AH L OW , W ER L D"
 const CHORD := "bC3 AA r400 AA [voice=1] bE3 IY r400 IY [voice=2] bG3 UW r400 UW"
 
@@ -86,6 +87,22 @@ func _ready() -> void:
 		worst = min(worst, w)
 	r["wav_stream"]["max_quantization_error"] = worst
 
+	# The WAV files' bytes are compared with klattsch-cli by
+	# tools/godot_tests.py; here, that they were written.
+	var v := Verdict.new()
+	var slack := Verdict.slack_ms() / 1000.0
+	for name in r.wavs:
+		v.expect("save_wav " + name, r.wavs[name].error == OK)
+	var length: float = r.length_s
+	v.expect("exact: identical", r.exact.identical and r.exact.compared > 0 and r.exact.tail_peak == 0.0)
+	v.near("exact: finished", r.exact.finished_after_s, length, slack + 0.05)
+	v.near("pitch 2: finished twice as fast", r.pitch2_finished_after_s, length / 2.0, slack + 0.05)
+	v.expect("seek: identical", r.seek.identical and r.seek.compared > 0 and r.seek.tail_peak == 0.0)
+	v.near("seek: finished", r.seek.finished_after_s, length - 0.5, slack + 0.05)
+	v.expect("wav_stream: 16-bit mono", r.wav_stream.format == AudioStreamWAV.FORMAT_16_BITS and not r.wav_stream.stereo)
+	v.expect("wav_stream: rounding only", r.wav_stream.max_quantization_error <= 1.0 / 65534.0 + 1e-9)
+	v.near("wav_stream: finished", r.wav_stream.finished_after_s, length, slack + 0.05)
+	v.finish(r)
 	print("STEP6_RESULT ", JSON.stringify(r))
 	get_tree().quit()
 

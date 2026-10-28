@@ -7,6 +7,8 @@
 # the master bus, timestamped each frame) plus the reported output latency.
 extends Node
 
+const Verdict := preload("res://verdict.gd")
+
 var capture: AudioEffectCapture
 var log := []  # [usec, event, id, extra]
 var captured := 0  # frames captured so far
@@ -152,6 +154,32 @@ func _ready() -> void:
 	r["target_3d"] = {"player": kp3.get_audio_player().name, "stream_is_klattsch": p3.stream is KlattschStream, "finished": count(id3, "finished")}
 	r["stats"] = kp.get_audio_player().stream.get_stats()
 
+	var v := Verdict.new()
+	var slack := Verdict.slack_ms()
+	r["slack_ms"] = slack
+	v.expect("internal_player", r.internal_player == "AudioStreamPlayer")
+	var one: Dictionary = r.single
+	v.expect("single: every phrase signalled", one.phrases > 0 and one.phrase_signals == one.phrases)
+	v.expect("single: in order, once", one.in_order and one.started_once and one.finished_once)
+	v.expect("single: phrase timing", abs(one.worst_phrase_offset_error_ms) <= slack)
+	v.near("single: heard_ms", one.heard_ms, one.total_ms, slack)
+	v.expect("single: started with the sound", is_nan(one.audio_vs_signal_ms) or abs(one.audio_vs_signal_ms) <= slack)
+	var q: Dictionary = r.queue
+	v.expect("queue: order and once", q.order_ok and q.finished_once)
+	v.near("queue: b follows a", q.b_start_minus_a_start_ms, q.a_total_ms, slack)
+	v.near("queue: c follows b", q.c_start_minus_b_start_ms, q.b_total_ms, slack)
+	var cut: Dictionary = r.interrupt
+	v.expect("interrupt: once, no late phrases", cut.long_finished_once and cut.long_phrases_after_cut == 0)
+	v.expect("interrupt: long ends as short starts", abs(cut.long_finished_minus_short_started_ms) <= slack)
+	v.expect("interrupt: long cut short", cut.long_heard_ms < cut.long_total_ms)
+	v.expect("pause: no signals while paused", r.pause.signals_during_pause == 0)
+	v.near("pause: heard_ms", r.pause.heard_ms, r.pause.total_plus_pause_ms, slack)
+	v.expect("stop", r.stop.finished == 2 and not r.stop.speaking and r.stop.s2_started == 0)
+	v.expect("reentrant", r.reentrant_id > 0 and r.get("reentrant_finished", 0) == 1)
+	v.expect("bad target", r.bad_target_id == -1 and r.errors.size() == 2)
+	v.expect("target_3d", r.target_3d.player == "Voice3D" and r.target_3d.stream_is_klattsch and r.target_3d.finished == 1)
+	v.expect("stats", not r.stats.dead and r.stats.drops_elsewhere == 0)
+	v.finish(r)
 	print("STEP4_RESULT ", JSON.stringify(r))
 	get_tree().quit()
 

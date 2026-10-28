@@ -3,6 +3,7 @@
 # Prints one STEP2_RESULT JSON line and quits.
 extends Node3D
 
+const Verdict := preload("res://verdict.gd")
 const SILENT := 0.0005  # |sample| below this counts as silence
 
 @onready var flat: AudioStreamPlayer = $Flat
@@ -55,14 +56,14 @@ func _ready() -> void:
 
 	# 4. silence(): quiet within a short fade.
 	stream.silence()
-	await record(0.15)
+	await record(0.25)  # longer than a dummy-driver burst (see verdict.gd)
 	r["after_silence_peak"] = peak(await record(0.3))
 
 	# 5. reset(): a voice that was sounding goes back to the silent defaults.
 	stream.set_params({"voicing": 1.0, "A1": 1.0, "F1": 500.0}, 10.0, 1)
 	await record(0.2)
 	r["reset"] = stream.reset()
-	await record(0.05)
+	await record(0.25)
 	r["after_reset_peak"] = peak(await record(0.3))
 
 	# 6. Interrupting: a long line cut short by another.
@@ -92,6 +93,26 @@ func _ready() -> void:
 	flat.stream = null
 	await seconds(0.1)
 	r["after_stop"] = KlattschStream.new().get_stats()
+
+	var v := Verdict.new()
+	v.expect("speak_before_play is false", not r.speak_before_play)
+	v.expect("local_to_scene", r.local_to_scene)
+	for key in ["speak", "append", "set_param", "reset"]:
+		v.expect(key, r[key])
+	v.expect("bad_param is false", not r.bad_param)
+	v.expect("hello has phrases", r.hello_phrases > 0)
+	v.near("hello_span_ms", r.hello_span_ms, r.hello_total_ms, 0.1 * r.hello_total_ms)
+	v.near("append_span_ms", r.append_span_ms, r.first_ms + r.second_ms, 0.1 * (r.first_ms + r.second_ms))
+	v.near("vowel_f0_before", r.vowel_f0_before, 120.0, 5.0)
+	v.near("vowel_f0_after", r.vowel_f0_after, 220.0, 5.0)
+	v.expect("after_silence_peak", r.after_silence_peak < 0.001)
+	v.expect("after_reset_peak", r.after_reset_peak < 0.001)
+	v.expect("interrupt_span_ms", r.interrupt_span_ms > 0.0 and r.interrupt_span_ms < r.short_ms + 100.0)
+	v.near("game_span_ms", r.game_span_ms, r.hello_total_ms, 0.1 * r.hello_total_ms)
+	for key in ["exact_stats", "game_stats"]:
+		v.expect(key + ".dead is false", not r[key].dead)
+		v.expect(key + ".drops_elsewhere", r[key].drops_elsewhere == 0)
+	v.finish(r)
 	print("STEP2_RESULT ", JSON.stringify(r))
 	get_tree().quit()
 
