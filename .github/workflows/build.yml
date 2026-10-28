@@ -55,7 +55,7 @@ jobs:
           node tools/gen-fixtures.mjs
           node tools/fuzz.mjs --seed 1 --scale 1
       - name: Test
-        run: cargo test --release -p klattsch-core -p klattsch-cli
+        run: cargo test --release -p klattsch-core -p klattsch-cli -p klattsch-godot
 
   build:
     name: library (${{ matrix.name }})
