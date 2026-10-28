@@ -6,7 +6,7 @@ speaks English, Japanese and klattsch phoneme strings in real time through
 Godot's own audio players (2D and 3D included), with live control of every
 synth parameter and signals timed to what the player hears.
 
-Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon and Intel).
+Windows (x86_64) and Linux (x86_64). macOS builds are paused for now.
 
 ## Install
 
@@ -16,13 +16,6 @@ Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon and Intel).
 
 That's all: exported games include the CMU dictionary
 (`res://addons/klattsch/cmudict.dict`) automatically.
-
-macOS: if the editor refuses to load the library from a downloaded zip,
-remove the quarantine flag first:
-
-```
-xattr -dr com.apple.quarantine addons/klattsch
-```
 
 ## Quick start
 

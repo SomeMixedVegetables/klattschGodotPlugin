@@ -10,7 +10,7 @@ It is a Rust port of [klattsch](https://github.com/tgies/klattsch) 0.8.0 by
 Tony Gies (MIT), and sounds exactly like it: the port is bit-exact against
 the original JS engine.
 
-Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon and Intel).
+Windows (x86_64) and Linux (x86_64). macOS builds are paused for now.
 
 ## Install
 
@@ -20,13 +20,7 @@ Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon and Intel).
    `addons/klattsch/`.
 3. Restart the Godot editor.
 
-Exported games include the pronunciation dictionary automatically. On macOS,
-if the editor refuses to load the library from the downloaded zip, run this
-in the project folder first:
-
-```bash
-xattr -dr com.apple.quarantine addons/klattsch
-```
+Exported games include the pronunciation dictionary automatically.
 
 ## Quick start
 
@@ -200,10 +194,12 @@ words does not copy the dictionary. On the CLI: `--words game-words.txt`
 
 CI (`.github/workflows/build.yml`) builds the Windows DLL (static C runtime,
 so players need no Visual C++ redistributable), the Linux library on Ubuntu
-22.04 (an older glibc, so it runs on more distributions) and a universal
-macOS library (`lipo` of arm64 and x86_64, signed ad hoc), and uploads
+22.04 (an older glibc, so it runs on more distributions), and uploads
 `addons/klattsch` as the `klattsch-godot-addon` artifact on every push to
-`main`.
+`main`. The universal macOS library (`lipo` of arm64 and x86_64, signed ad
+hoc) is turned off for now: GitHub's Apple Silicon runners were unavailable.
+To turn it back on, add `macos-14` to the test matrix and remove
+`if: false` from `build-macos` in the workflow.
 
 A local Windows-only build:
 

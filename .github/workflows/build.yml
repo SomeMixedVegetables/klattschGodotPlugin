@@ -30,7 +30,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-14]
+        # macOS is off for now (GitHub's Apple Silicon runners were not
+        # available); to turn it back on, add macos-14 here and remove the
+        # `if: false` from build-macos.
+        os: [windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -100,6 +103,7 @@ jobs:
           if-no-files-found: error
 
   build-macos:
+    if: false  # macOS is off for now; see the test job's matrix.
     name: library (macos universal)
     runs-on: macos-14
     env:
@@ -131,6 +135,8 @@ jobs:
   package:
     name: addon
     needs: [test, build, build-macos]
+    # Runs when build-macos is skipped too (only a failure stops it).
+    if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -140,10 +146,15 @@ jobs:
           path: libs
       - name: Assemble addons/klattsch
         run: |
+          # The macOS library is included when build-macos ran.
+          macos=()
+          if [ -f libs/lib-macos/libklattsch_godot.dylib ]; then
+            macos=(--macos libs/lib-macos/libklattsch_godot.dylib)
+          fi
           python3 tools/package_addon.py \
             --windows libs/lib-windows/klattsch_godot.dll \
             --linux libs/lib-linux/libklattsch_godot.so \
-            --macos libs/lib-macos/libklattsch_godot.dylib \
+            "${macos[@]}" --allow-missing \
             --out dist/klattsch-godot
       # Downloaded as a zip whose top level is addons/: unzip into a project.
       - uses: actions/upload-artifact@v4

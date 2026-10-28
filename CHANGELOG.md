@@ -5,8 +5,8 @@ Each release's section here becomes its notes on GitHub.
 ## 0.1.0
 
 The first release of klattsch for Godot: a small formant speech synthesizer
-for Godot 4.7 and later, on Windows (x86_64), Linux (x86_64) and macOS
-(Apple Silicon and Intel). It sounds exactly like
+for Godot 4.7 and later, on Windows (x86_64) and Linux (x86_64); macOS
+builds are paused for now. It sounds exactly like
 [klattsch](https://github.com/tgies/klattsch) 0.8.0, which it is a Rust port
 of.
 
@@ -27,5 +27,4 @@ of.
 - Exports include the dictionary automatically.
 
 To install, unzip into your project folder (you get `addons/klattsch/`) and
-restart the editor. On macOS, if the editor refuses to load the library,
-run `xattr -dr com.apple.quarantine addons/klattsch` in the project folder.
+restart the editor.
