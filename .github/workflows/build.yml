@@ -165,7 +165,8 @@ jobs:
 
   release:
     name: GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Like package: a skipped build-macos must not skip the release.
+    if: ${{ !cancelled() && !failure() && startsWith(github.ref, 'refs/tags/v') }}
     needs: package
     runs-on: ubuntu-latest
     permissions:
