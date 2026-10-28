@@ -385,8 +385,7 @@ record, with these amendments agreed after review:
   packaged addon in place of the debug build, imports it (`--import`) and
   runs every test scene and the editor checks headless; each scene now ends
   with a verdict (`ok`, `failed`, from `godot/verdict.gd`), and the WAVs
-  `save_wav` writes are compared with the CLI's byte for byte. CI runs it
-  on Ubuntu, macOS (Apple Silicon) and Windows. Headless Godot uses the
+  `save_wav` writes are compared with the CLI's byte for byte. Headless Godot uses the
   dummy audio driver, which still mixes (at 44.1 kHz, in bursts of up to
   ~100 ms), so exactness is checked as with real output and timing to
   250 ms instead of 30 ms; the step 2 silence and reset checks now wait
@@ -401,3 +400,15 @@ record, with these amendments agreed after review:
   editor (`@tool`) script that leaves a KlattschSample or KlattschStream
   playing when the editor quits can crash it; games that quit while
   speaking have exited cleanly in every run.
+- **Godot in CI, dropped:** a job that downloaded Godot 4.7.2 and ran
+  `tools/godot_tests.py` on Ubuntu, macOS and Windows failed on all three
+  at its first step: Godot crashed while quitting after importing the
+  project. Reproduced locally by starting Godot with empty editor settings
+  (an `_sc_` file next to the executable): every first-ever start with the
+  addon installed crashes on exit, never without it, and later starts are
+  fine. The crash comes right after the extension's `MainLoop` deinit. A
+  first start also generates the class documentation, which creates
+  throwaway instances of every class, and those were not seen being freed;
+  that is the leading suspect, not confirmed. Users could meet it the first
+  time they close the editor on a fresh Godot install. Not fixed; the CI
+  job was removed.

@@ -245,14 +245,18 @@ runs the parity tests on Windows, Ubuntu and macOS; builds the Windows DLL
 library on Ubuntu 22.04 (an older glibc) and a universal macOS library
 (`lipo` of arm64 and x86_64, signed ad hoc); and uploads `addons/klattsch`
 as the `klattsch-godot-addon` artifact, ready to unzip into a project.
-It then downloads Godot 4.7.2 (checksum verified) on Ubuntu, macOS and
-Windows and runs `tools/godot_tests.py`: every test scene in `godot/` and
-the editor checks, headless, against that addon, with `save_wav` output
-compared to the CLI's byte for byte. Locally:
+CI does not run Godot itself (see below); `tools/godot_tests.py` does,
+locally: it runs every test scene in `godot/` and the editor checks,
+headless, against a packaged addon, and compares `save_wav` output with the
+CLI's byte for byte:
 
 ```bash
 python tools/godot_tests.py --godot ../Godot_v4.7.2-stable_win64_console.exe --addon target/dist/klattsch-godot --cli target/release/klattsch
 ```
+
+Running it in CI was tried and dropped: on a fresh machine Godot crashes
+while quitting after its first-ever start with the addon installed (see the
+findings in `docs/gdext-handoff.md`), before any test runs.
 
 A local Windows-only build:
 

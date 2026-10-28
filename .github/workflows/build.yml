@@ -1,7 +1,7 @@
 # Tests the core against the original JS engine on every platform, builds the
-# GDExtension for Windows, Linux and macOS (universal), packages
-# addons/klattsch as the `klattsch-godot-addon` artifact, and runs the Godot
-# test scenes (godot/) headless against that addon on each platform.
+# GDExtension for Windows, Linux and macOS (universal), and packages
+# addons/klattsch as the `klattsch-godot-addon` artifact. (The Godot test
+# scenes run locally with tools/godot_tests.py; see the README.)
 
 name: build
 
@@ -20,8 +20,6 @@ env:
   # The JS engine the port is checked against: tgies/klattsch 0.8.0 (its
   # src/, bin/ and package.json are what the parity fixtures were made from).
   KLATTSCH_JS_REF: 43189e6f9f311e9514cc0809b080d0ccb9eb746d
-  # The Godot release the addon is tested in.
-  GODOT_VERSION: "4.7.2"
 
 jobs:
   test:
@@ -150,57 +148,3 @@ jobs:
           name: klattsch-godot-addon
           path: dist/klattsch-godot
           if-no-files-found: error
-
-  godot:
-    name: Godot tests (${{ matrix.name }})
-    needs: package
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux
-            os: ubuntu-22.04
-            archive: linux.x86_64.zip
-            godot: Godot_v4.7.2-stable_linux.x86_64
-          - name: macos
-            # Apple Silicon: the arm64 half of the universal library.
-            os: macos-14
-            archive: macos.universal.zip
-            godot: Godot.app/Contents/MacOS/Godot
-          - name: windows
-            os: windows-latest
-            archive: win64.exe.zip
-            godot: Godot_v4.7.2-stable_win64_console.exe
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: cli
-      # The test compares Klattsch.save_wav files with the CLI's, byte for byte.
-      - name: Build the CLI
-        run: cargo build --release -p klattsch-cli
-      - uses: actions/download-artifact@v4
-        with:
-          name: klattsch-godot-addon
-          path: dist/klattsch-godot
-      - name: Download Godot (checksum verified)
-        shell: bash
-        run: |
-          archive="Godot_v${GODOT_VERSION}-stable_${{ matrix.archive }}"
-          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
-          curl -sSfL -o "$archive" "$base/$archive"
-          curl -sSfL -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
-          grep " $archive\$" SHA512-SUMS.txt > godot.sha512
-          if command -v sha512sum > /dev/null; then sha512sum -c godot.sha512; else shasum -a 512 -c godot.sha512; fi
-          unzip -q "$archive" -d godot-bin
-          chmod +x "godot-bin/${{ matrix.godot }}"
-      - name: Run the Godot tests headless
-        shell: bash
-        run: |
-          python tools/godot_tests.py --godot "godot-bin/${{ matrix.godot }}" --addon dist/klattsch-godot --cli target/release/klattsch --work godot-work
