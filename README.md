@@ -39,25 +39,6 @@ type a line, press Play, and hear it in that voice without running the game.
 The addon's [README](addon/README.md) covers the rest: voices, live pitch
 control, queueing, custom words and voices, pre-rendering and WAV files.
 
-## Releasing
-
-1. Set the new version in `Cargo.toml` (`[workspace.package] version`).
-2. Add a `## X.Y.Z` section to [CHANGELOG.md](CHANGELOG.md); it becomes the
-   release notes.
-3. Commit, then tag and push:
-
-```bash
-git tag vX.Y.Z
-```
-
-```bash
-git push origin vX.Y.Z
-```
-
-CI builds the three libraries, packages the addon and publishes the GitHub
-release with `klattsch-godot-vX.Y.Z.zip` attached. It stops if the tag does
-not match the version in `Cargo.toml` or the changelog has no section for it.
-
 ## Development
 
 ### Layout
