@@ -1,0 +1,22 @@
+[package]
+name = "klattsch-godot"
+description = "Godot 4 GDExtension for klattsch (gdext)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+klattsch-core.workspace = true
+# Godot calls AudioStreamPlayback::mix from its audio thread; without
+# experimental-threads gdext panics there (godot-rust/gdext#1131).
+godot = { version = "0.5", features = ["api-4-7", "experimental-threads"] }
+
+[features]
+# Count allocator calls inside mix (reported by KlattschStream.get_stats as
+# mix_allocations). For testing; it swaps in a counting global allocator.
+alloc-check = []

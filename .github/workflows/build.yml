@@ -1,0 +1,149 @@
+# Tests the core against the original JS engine on every platform, builds the
+# GDExtension for Windows, Linux and macOS (universal), and packages
+# addons/klattsch as the `klattsch-godot-addon` artifact.
+
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # The JS engine the port is checked against: tgies/klattsch 0.8.0 (its
+  # src/, bin/ and package.json are what the parity fixtures were made from).
+  KLATTSCH_JS_REF: 43189e6f9f311e9514cc0809b080d0ccb9eb746d
+
+jobs:
+  test:
+    name: parity tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: klattsch-godot
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: klattsch-godot
+      # The tools look for the JS engine next to the repository.
+      - uses: actions/checkout@v4
+        with:
+          repository: tgies/klattsch
+          ref: ${{ env.KLATTSCH_JS_REF }}
+          path: klattsch-main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: klattsch-godot
+      # Fixtures are made on each platform: Math.pow, like the port, uses the
+      # platform C library.
+      - name: Record JS fixtures
+        run: |
+          node tools/gen-fixtures.mjs
+          node tools/fuzz.mjs --seed 1 --scale 1
+      - name: Test
+        run: cargo test --release -p klattsch-core -p klattsch-cli
+
+  build:
+    name: library (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            built: klattsch_godot.dll
+            # Static C runtime: players need no Visual C++ redistributable.
+            rustflags: -C target-feature=+crt-static
+          - name: linux
+            # Built on an older glibc so the library runs on more distributions.
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            built: libklattsch_godot.so
+            rustflags: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Build
+        shell: bash
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+        run: cargo build --release -p klattsch-godot --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lib-${{ matrix.name }}
+          path: target/${{ matrix.target }}/release/${{ matrix.built }}
+          if-no-files-found: error
+
+  build-macos:
+    name: library (macos universal)
+    runs-on: macos-14
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - name: Build both architectures
+        run: |
+          cargo build --release -p klattsch-godot --target aarch64-apple-darwin
+          cargo build --release -p klattsch-godot --target x86_64-apple-darwin
+      - name: Make a universal library and sign it ad hoc
+        run: |
+          lipo -create -output libklattsch_godot.dylib \
+            target/aarch64-apple-darwin/release/libklattsch_godot.dylib \
+            target/x86_64-apple-darwin/release/libklattsch_godot.dylib
+          lipo -info libklattsch_godot.dylib
+          codesign --force --sign - libklattsch_godot.dylib
+          codesign --verify --verbose libklattsch_godot.dylib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lib-macos
+          path: libklattsch_godot.dylib
+          if-no-files-found: error
+
+  package:
+    name: addon
+    needs: [test, build, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lib-*
+          path: libs
+      - name: Assemble addons/klattsch
+        run: |
+          python3 tools/package_addon.py \
+            --windows libs/lib-windows/klattsch_godot.dll \
+            --linux libs/lib-linux/libklattsch_godot.so \
+            --macos libs/lib-macos/libklattsch_godot.dylib \
+            --out dist/klattsch-godot
+      # Downloaded as a zip whose top level is addons/: unzip into a project.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: klattsch-godot-addon
+          path: dist/klattsch-godot
+          if-no-files-found: error

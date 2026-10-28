@@ -1,0 +1,23 @@
+[package]
+name = "klattsch-core"
+description = "Rust port of the klattsch parallel-formant speech synthesis engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+indexmap = "2"
+libm = "0.2"
+regex = "1"
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+unicode-normalization = "0.1"
+
+# The port mirrors the JS source line by line so it can be audited against it
+# and stays bit-exact: manual clamps keep JS NaN behavior, and sequential `if`s
+# and `!(x > 0)` checks follow the original control flow.
+[lints.clippy]
+manual_clamp = "allow"
+collapsible_if = "allow"
+neg_cmp_op_on_partial_ord = "allow"

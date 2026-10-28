@@ -1,0 +1,11 @@
+# cargo-about settings for THIRD-PARTY-NOTICES.md. Regenerate after changing
+# dependencies:
+#
+#   cargo about generate --offline about.hbs -o THIRD-PARTY-NOTICES.md
+#
+# Dual-licensed crates are listed under the first license here that they
+# offer, so MIT comes first.
+accepted = ["MIT", "Apache-2.0", "Zlib", "Unicode-3.0", "MPL-2.0"]
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
+private = { ignore = true }

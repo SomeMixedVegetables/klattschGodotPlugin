@@ -1,0 +1,12 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = "4.7"
+reloadable = true
+
+[libraries]
+windows.debug.x86_64 = "res://../target/debug/klattsch_godot.dll"
+windows.release.x86_64 = "res://../target/release/klattsch_godot.dll"
+linux.debug.x86_64 = "res://../target/debug/libklattsch_godot.so"
+linux.release.x86_64 = "res://../target/release/libklattsch_godot.so"
+macos.debug = "res://../target/debug/libklattsch_godot.dylib"
+macos.release = "res://../target/release/libklattsch_godot.dylib"

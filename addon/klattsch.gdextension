@@ -1,0 +1,16 @@
+; klattsch for Godot 4.7+ (https://github.com/SomeMixedVegetables/klattschGodotPlugin)
+
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = "4.7"
+reloadable = false
+
+[libraries]
+windows.x86_64 = "res://addons/klattsch/bin/klattsch_godot.windows.x86_64.dll"
+linux.x86_64 = "res://addons/klattsch/bin/libklattsch_godot.linux.x86_64.so"
+macos = "res://addons/klattsch/bin/libklattsch_godot.macos.universal.dylib"
+
+[icons]
+KlattschPlayer = "res://addons/klattsch/icons/KlattschPlayer.svg"
+KlattschStream = "res://addons/klattsch/icons/KlattschStream.svg"
+KlattschSample = "res://addons/klattsch/icons/KlattschSample.svg"

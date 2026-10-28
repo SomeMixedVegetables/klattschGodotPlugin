@@ -1,0 +1,14 @@
+; Test project for klattsch-godot (see docs/klattsch-godot-build-spec.docx).
+; The klattsch_editor_test plugin runs only with -- --klattsch-editor-test.
+
+config_version=5
+
+[application]
+
+config/name="klattsch-godot test"
+run/main_scene="res://demo.tscn"
+config/features=PackedStringArray("4.7")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/klattsch_editor_test/plugin.cfg")

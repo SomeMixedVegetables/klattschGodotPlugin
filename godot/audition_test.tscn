@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[sub_resource type="KlattschStream" id="voice"]
+base_f0 = 180.0
+rate = 95.0
+vibrato_depth = 3.0
+
+[sub_resource type="KlattschStream" id="speaker_voice"]
+base_f0 = 90.0
+
+[node name="AuditionTest" type="Node"]
+
+[node name="Voice" type="KlattschPlayer" parent="."]
+stream = SubResource("voice")
+
+[node name="Speaker" type="AudioStreamPlayer2D" parent="."]
+stream = SubResource("speaker_voice")
+
+[node name="Bare" type="KlattschPlayer" parent="."]
+target = NodePath("../Speaker")
+intonation = false

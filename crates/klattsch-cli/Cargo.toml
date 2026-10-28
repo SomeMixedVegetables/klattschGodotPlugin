@@ -1,0 +1,16 @@
+[package]
+name = "klattsch-cli"
+description = "Command-line WAV renderer for klattsch."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "klattsch"
+path = "src/main.rs"
+
+[dependencies]
+klattsch-core.workspace = true
+serde_json = "1"
