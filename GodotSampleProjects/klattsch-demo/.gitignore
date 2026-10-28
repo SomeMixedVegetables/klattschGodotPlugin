@@ -1,0 +1,4 @@
+# Godot 4
+.godot/
+# The addon itself comes from the release zip (see README.md).
+addons/klattsch/

@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1"]
+
+[sub_resource type="KlattschStream" id="voice_stream"]
+
+[sub_resource type="KlattschStream" id="voice_2d_stream"]
+base_f0 = 150.0
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Voice" type="KlattschPlayer" parent="."]
+stream = SubResource("voice_stream")
+
+[node name="Speaker2D" type="AudioStreamPlayer2D" parent="."]
+position = Vector2(640, 400)
+
+[node name="Voice2D" type="KlattschPlayer" parent="."]
+target = NodePath("../Speaker2D")
+stream = SubResource("voice_2d_stream")
+
+[node name="SamplePlayer" type="AudioStreamPlayer" parent="."]

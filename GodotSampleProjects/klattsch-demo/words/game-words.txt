@@ -1,0 +1,9 @@
+;;; A custom word list in the CMU Pronouncing Dictionary format:
+;;; WORD, two spaces, then its phones (stress digits 0, 1, 2 on vowels).
+;;; Load it with Klattsch.load_word_list("res://words/game-words.txt").
+;;; Words here win over the CMU dictionary.
+KLATTSCH  K L AE1 CH
+GODOT  G AH0 D OW1
+ZORBLAX  Z AO1 R B L AE0 K S
+ELDRITCHIA  EH0 L D R IH1 CH IY0 AH0
+NPC  EH1 N P IY1 S IY1

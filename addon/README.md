@@ -24,6 +24,7 @@ That's all: exported games include the CMU dictionary
 
 func _ready() -> void:
 	Klattsch.load_dictionary()           # parses in the background
+	await Klattsch.dictionary_loaded     # until then, words are guessed from spelling
 	voice.phrase_started.connect(func(id, i, phoneme, a, b): print(phoneme))
 	voice.say("Halt! Who goes there?")
 
